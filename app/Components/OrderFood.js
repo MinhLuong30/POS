@@ -1,64 +1,71 @@
 import { useState } from "react";
 import { View, Text, ScrollView, Alert, Modal, TouchableOpacity } from "react-native";
 import { Card, Button, Picker, Collapse } from "@ant-design/react-native";
-import japaneseFoodData from "../Data";
 import { saveOrder, getOrders } from "./Orders";
 import { CollapsePanel } from "@ant-design/react-native/lib/collapse/collapse";
+import * as Sharing from "expo-sharing";
+import * as FileSystem from "expo-file-system";
+import * as Print from "expo-print"; 
+import japaneseFoodData from "../Data";
+import { printOrder } from "./PrintOrder";
 
 export default function OrderFood({ quantities }) {
   const [orderType, setOrderType] = useState("Eat Here");
   const [modalVisible, setModalVisible] = useState(false);
-  const [orderCounter, setOrderCounter] = useState(1); 
-    // Function to handle order placement with auto-generated Order ID
-    const handlePlaceOrder = () => {
-        const orderItems = Object.entries(quantities)
-          .filter(([_, quantity]) => quantity > 0)
-          .map(([itemName, quantity]) => {
-            const item = japaneseFoodData.find((food) => food.name === itemName);
-            return { name: item.name, quantity, price: item.price };
-          });
-    
-        if (orderItems.length === 0) {
-          Alert.alert("Order Error", "No items selected!");
-          return;
-        }
-    
-        const total = orderItems.reduce((acc, item) => acc + item.price * item.quantity, 0);
-    
-        // Generate a unique Order ID using the current timestamp
-        const orderId = `OD-${String(orderCounter).padStart(3, '0')}`;
-    
-        // Create the new order object
-        const newOrder = { 
-          orderId,          // New generated order ID
-          orderType, 
-          items: orderItems, 
-          total, 
-          timestamp: new Date().toISOString() 
-        };
-    
-        // Save the order
-        saveOrder(newOrder);
-        setOrderCounter(prevCounter => prevCounter + 1);
+  const [billModalVisible, setBillModalVisible] = useState(false);
+  const [orderCounter, setOrderCounter] = useState(1);
+  const [currentOrder, setCurrentOrder] = useState(null); // Store the latest order for the bill
 
-        Alert.alert("Order Placed", "Your order has been saved with ID: " + orderId);
-      };
-    
+  const getOrderItemPrice = (itemName, quantity) => {
+    const item = japaneseFoodData.find((food) => food.name === itemName);
+    return item ? item.price * quantity : 0; // Return calculated price or 0 if item not found
+  };
+  // Function to handle order placement
+  const handlePlaceOrder = () => {
+    const orderItems = Object.entries(quantities)
+  .filter(([_, quantity]) => quantity > 0)
+  .map(([itemName, quantity]) => ({
+    name: itemName,
+    price: getOrderItemPrice(itemName, quantity),
+    quantity,
+  }));
 
-  // Function to handle showing orders
-  const handleShowOrders = () => {
-    setModalVisible(true);
+  if (orderItems.length === 0) {
+    Alert.alert("Order Error", "No items selected!");
+    return;
+  }
+    const total = orderItems.reduce((acc, item) => acc + item.price , 0); 
+
+    // Generate Order ID in format OD-001, OD-002...
+    const orderId = `OD-${String(orderCounter).padStart(3, "0")}`;
+
+    // Create the new order object
+    const newOrder = {
+      orderId,
+      orderType,
+      items: orderItems,
+      total,
+      timestamp: new Date().toLocaleString(),
+    };
+
+    // Save the order
+    saveOrder(newOrder);
+    setOrderCounter((prevCounter) => prevCounter + 1);
+
+    setCurrentOrder(newOrder); // Set the current order for printing
+    setBillModalVisible(true); // Show bill modal
+
   };
 
   return (
     <View className="flex-1 h-fit ml-3 bg-gray-100 p-4 mb-10">
       <Text className="text-3xl text-center mb-4 font-bold">Order Food</Text>
-      
-      {/* Select Dropdown for Order Type */}
+
+      {/* Select Order Type */}
       <Picker
         data={[
           { label: "Eat Here", value: "Eat Here" },
-          { label: "Take-Away", value: "Take-Away" }
+          { label: "Take-Away", value: "Take-Away" },
         ]}
         cols={1}
         value={[orderType]}
@@ -67,7 +74,7 @@ export default function OrderFood({ quantities }) {
         <Button>{orderType}</Button>
       </Picker>
 
-      {/* Scrollable Food List */}
+      {/* Order Summary */}
       <View style={{ flex: 1, maxHeight: 250, marginTop: 20 }}>
         <ScrollView
           style={{ backgroundColor: "white", borderRadius: 20, padding: 10 }}
@@ -75,13 +82,12 @@ export default function OrderFood({ quantities }) {
         >
           {Object.entries(quantities).map(([itemName, quantity]) => {
             if (quantity > 0) {
-              const item = japaneseFoodData.find((food) => food.name === itemName);
               return (
                 <Card key={itemName} style={{ marginBottom: 10, borderRadius: 20 }}>
-                  <Card.Header title={<Text className="w-auto text-center text-xl">{item.name}</Text>} />
+                  <Card.Header title={<Text className="w-auto text-center text-xl">{itemName}</Text>} />
                   <Card.Body>
                     <View className="flex-row items-center justify-between ml-5 mr-5">
-                      <Text className="text-xl font-bold">{item.price} $</Text>
+                      <Text className="text-xl font-bold">Price: {getOrderItemPrice(itemName, quantity)}$</Text>
                       <Text className="text-lg">Quantity: {quantity}</Text>
                     </View>
                   </Card.Body>
@@ -93,71 +99,84 @@ export default function OrderFood({ quantities }) {
         </ScrollView>
       </View>
 
-      {/* Fixed Button at Bottom */}
+      {/* Place Order Button */}
       <View className="flex-row items-center justify-between mt-5">
         <Text className="text-xl font-bold">
-          Total: {Object.entries(quantities).reduce((acc, [itemName, quantity]) => {
-            const item = japaneseFoodData.find((food) => food.name === itemName);
-            return acc + (item.price * quantity);
-          }, 0)} $
+          Total: {Object.entries(quantities).reduce((acc, [itemName, quantity]) => acc + getOrderItemPrice(itemName, quantity), 0)} $
         </Text>
-        <Button type="primary" onPress={handlePlaceOrder}>Place Order</Button>
+        <Button type="primary" onPress={handlePlaceOrder}>
+          Place Order
+        </Button>
       </View>
 
       {/* Show Orders Button */}
       <View className="flex-row items-center justify-between mt-5">
-        <Button type="default" onPress={handleShowOrders}>Show Orders</Button>
+        <Button type="default" onPress={() => setModalVisible(true)}>Show Orders</Button>
       </View>
 
-      {/* Modal to display orders */}
-      <Modal
-  style={{ flex: 1 }}
-  animationType="slide"
-  transparent={true}
-  visible={modalVisible}
-  onRequestClose={() => setModalVisible(false)}
->
-  <View style={{ 
-    flex: 1, 
-    justifyContent: "center", 
-    alignItems: "center", 
-    backgroundColor: "rgba(0,0,0,0.5)" 
-  }}>
-    <View style={{ 
-      width: 300, 
-      maxHeight: 500, 
-      backgroundColor: "white", 
-      borderRadius: 20, 
-      padding: 20 
-    }}>
-      <Text className="text-2xl text-center mb-4 font-bold">Orders</Text>
-      
-      {/* Collapse to show order details */}
-      <ScrollView>
-        <Collapse accordion>
-          {getOrders().map((order, index) => (
-            <CollapsePanel
-              title={`Order ID: ${order.orderId || 'Unknown'}`}
-              key={index}
-            >
-              <Text className="text-lg font-bold">Total: {order.total} $</Text>
-              <Text className="text-lg">Timestamp: {order.timestamp}</Text>
-              <Text className="text-lg">Items:</Text>
-              {order.items.map((item, idx) => (
-                <Text key={idx} className="text-lg">- {item.name} x {item.quantity}</Text>
-              ))}
-            </CollapsePanel>
-          ))}
-        </Collapse>
-      </ScrollView>
+      {/* Orders List Modal */}
+      <Modal transparent visible={modalVisible} onRequestClose={() => setModalVisible(false)}>
+        <View style={{ flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: "rgba(0,0,0,0.5)" }}>
+          <View style={{ width: 600, maxHeight: 500, backgroundColor: "white", borderRadius: 20, padding: 20 }}>
+            <Text className="text-2xl text-center mb-4 font-bold">Orders</Text>
+            <ScrollView>
+              <Collapse accordion>
+                {getOrders().map((order, index) => (
+                  <CollapsePanel title={`Order ID: ${order.orderId}`} key={index}>
+                    <Text className="text-lg font-bold">Total: {order.total} $</Text>
+                    <Text className="text-lg">Timestamp: {order.timestamp}</Text>
+                    <Text className="text-lg">Items:</Text>
+                    {order.items.map((item, idx) => (
+                      <Text key={idx} className="text-lg">- {item.name} x {item.quantity}</Text>
+                    ))}
+                    <Button type="primary"  
+                            style={{ width: 200, alignSelf: "center" }}
+                            onPress={() => printOrder(currentOrder, getOrderItemPrice)} className="mt-4">
+                      Print Receipt
+                    </Button>
+                  </CollapsePanel>
+                ))}
+              </Collapse>
+            </ScrollView>
+            <TouchableOpacity onPress={() => setModalVisible(false)}>
+              <Text className="text-center text-lg text-blue-500 mt-4">Close</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
 
-      <TouchableOpacity onPress={() => setModalVisible(false)}>
-        <Text className="text-center text-lg text-blue-500 mt-4">Close</Text>
-      </TouchableOpacity>
-    </View>
-  </View>
-</Modal>
+       {/* Bill Modal */}
+       <Modal transparent visible={billModalVisible} onRequestClose={() => setBillModalVisible(false)}>
+        <View style={{ flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: "rgba(0,0,0,0.5)" }}>
+          <View style={{ width: 400, backgroundColor: "white", borderRadius: 20, padding: 20 }}>
+            <Text className="text-2xl text-center mb-4 font-bold">Order Receipt</Text>
+            {currentOrder && (
+              <>
+                <Text className="text-lg">Order ID: {currentOrder.orderId}</Text>
+                <Text className="text-lg">Order Type: {currentOrder.orderType}</Text>
+                <Text className="text-lg">Timestamp: {currentOrder.timestamp}</Text>
 
+                <Text className="text-xl font-bold mt-4">Items Ordered:</Text>
+                {currentOrder.items.map((item, index) => (
+                  <Text key={index} className="text-lg">
+                    - {item.name} x {item.quantity} = {getOrderItemPrice(item.name, item.quantity)} $
+                  </Text>
+                ))}
+
+                <Text className="text-xl font-bold mt-4">Total: {currentOrder.total} $</Text>
+
+                <Button type="primary" onPress={() => printOrder(currentOrder, getOrderItemPrice)} className="mt-4">
+                  Print Receipt
+                </Button>
+              </>
+            )}
+
+            <TouchableOpacity onPress={() => setBillModalVisible(false)}>
+              <Text className="text-center text-lg text-blue-500 mt-4">Close</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
