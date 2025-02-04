@@ -2,12 +2,11 @@ import { useState } from "react";
 import { Text, View, ScrollView, TouchableOpacity } from "react-native";
 import { Button, Card } from "@ant-design/react-native";
 import japaneseFoodData from "../Data";
+import '../../global.css';
+const foodTypes = ["All", "Sushi", "Salad", "Tenmaki"];
 
-const foodTypes = ["All", "Sushi", "Salad", "Tenmaki", "Noodles", "Soup"];
-
-export default function FoodDisplay() {
+export default function FoodDisplay({ quantities, updateQuantity }) {
   const [selectedType, setSelectedType] = useState("All");
-  const [quantities, setQuantities] = useState({});
 
   // Filter data based on selected type
   const filteredData =
@@ -17,34 +16,26 @@ export default function FoodDisplay() {
           (item) => item.type.toLowerCase() === selectedType.toLowerCase()
         );
 
-  // Function to update quantity
-  const updateQuantity = (itemName, amount) => {
-    setQuantities((prev) => {
-      const newQuantity = (prev[itemName] || 0) + amount;
-      return { ...prev, [itemName]: Math.max(0, newQuantity) };
-    });
-  };
-
   return (
-    <View className="w-3/4 bg-gray-300 p-4">
-      {/* Food Type ScrollView */}
+    <View className="w-3/4 bg-gray-100 p-4">
+      /* Food Type ScrollView */
       <ScrollView horizontal showsHorizontalScrollIndicator={false} className="mb-4">
         {foodTypes.map((type, index) => (
           <TouchableOpacity key={index} onPress={() => setSelectedType(type)}>
-            <View className={`w-40 h-20 p-2 ${selectedType === type ? "bg-blue-400" : ""}`}>
-              <Card style={{ height: 50, borderRadius: 20, marginBottom: 30 }}>
-                <Card.Header
-                  title={<Text className="text-center items-center justify-center text-lg">{type}</Text>}
-                />
+            <View className={`w-40 h-20 p-2`}>
+              <Card style={{ height: 50, borderRadius: 20, marginBottom: 30, backgroundColor: `${selectedType === type ? "black" : "white"}` }}>
+                <Card.Body>
+                  <Text className={`text-center items-center justify-center text-lg ${selectedType === type ? "text-white" : ""}`}>{type}</Text>
+                </Card.Body>
               </Card>
             </View>
           </TouchableOpacity>
         ))}
       </ScrollView>
 
-      {/* Food Items Grid */}
+      /* Food Items Grid */
       <ScrollView>
-        <View className="flex-wrap flex-row">
+        <View className="flex-wrap flex-row mb-32">
           {filteredData.map((item, index) => (
             <View key={index} className="w-1/4 p-2">
               <Card style={{ marginBottom: 10, height: 280, borderRadius: 20 }}>
