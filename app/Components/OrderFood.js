@@ -123,12 +123,14 @@ export default function OrderFood({ quantities }) {
               <Collapse accordion>
                 {getOrders().map((order, index) => (
                   <CollapsePanel title={`Order ID: ${order.orderId}`} key={index}>
-                    <Text className="text-lg font-bold">Total: {order.total} $</Text>
+                    <Text className="text-lg">Order Type: {order.orderType}</Text>
+                    
                     <Text className="text-lg">Timestamp: {order.timestamp}</Text>
                     <Text className="text-lg">Items:</Text>
                     {order.items.map((item, idx) => (
                       <Text key={idx} className="text-lg">- {item.name} x {item.quantity}</Text>
                     ))}
+                    <Text className="text-lg font-bold text-center mb-4">Total: {order.total} $</Text>
                     <Button type="primary"  
                             style={{ width: 200, alignSelf: "center" }}
                             onPress={() => printOrder(currentOrder, getOrderItemPrice)} className="mt-4">
