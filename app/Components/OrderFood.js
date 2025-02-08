@@ -2,7 +2,6 @@ import { useState } from "react";
 import { View, Text, ScrollView, Alert, Modal, TouchableOpacity } from "react-native";
 import { Card, Button, Picker, Collapse } from "@ant-design/react-native";
 import { saveOrder, getOrders } from "./Orders";
-import { CollapsePanel } from "@ant-design/react-native/lib/collapse/collapse";
 import * as Sharing from "expo-sharing";
 import * as FileSystem from "expo-file-system";
 import * as Print from "expo-print"; 
@@ -122,7 +121,7 @@ export default function OrderFood({ quantities }) {
             <ScrollView>
               <Collapse accordion>
                 {getOrders().map((order, index) => (
-                  <CollapsePanel title={`Order ID: ${order.orderId}`} key={index}>
+                  <Collapse.Panel title={`Order ID: ${order.orderId}`} key={index}>
                     <Text className="text-lg">Order Type: {order.orderType}</Text>
                     
                     <Text className="text-lg">Timestamp: {order.timestamp}</Text>
@@ -136,7 +135,7 @@ export default function OrderFood({ quantities }) {
                             onPress={() => printOrder(currentOrder, getOrderItemPrice)} className="mt-4">
                       Print Receipt
                     </Button>
-                  </CollapsePanel>
+                  </Collapse.Panel>
                 ))}
               </Collapse>
             </ScrollView>
