@@ -15,7 +15,7 @@ export default function OrderFood({ quantities }) {
   const [billModalVisible, setBillModalVisible] = useState(false);
   const [orderCounter, setOrderCounter] = useState(1);
   const [currentOrder, setCurrentOrder] = useState(null); // Store the latest order for the bill
-  const [amountPaid, setAmountPaid] = useState(0);
+  const [amountPaid, setAmountPaid] = useState("");
 
 
   
@@ -23,7 +23,7 @@ export default function OrderFood({ quantities }) {
   const handleAmountPaidChange = (text) => {
     // Convert text input to a number, default to 0 if empty or invalid
     const value = parseFloat(text);
-    setAmountPaid(isNaN(value) ? 0 : value);
+    setAmountPaid(isNaN(value) ? "" : value);
   };
 
   const getOrderItemPrice = (itemName, quantity) => {
@@ -70,7 +70,8 @@ export default function OrderFood({ quantities }) {
   const totalAmount = Object.entries(quantities).reduce(
     (acc, [itemName, quantity]) => acc + getOrderItemPrice(itemName, quantity),
     0
-  );
+  ).toFixed(2);
+
   const balanceDue = Math.max(amountPaid - totalAmount , 0).toFixed(2);
   
 
@@ -133,16 +134,26 @@ export default function OrderFood({ quantities }) {
 
             <View className="mt-5 flex-row items-center justify-between">
             <Text className="text-xl font-bold">Total:</Text>
-            <Text className="text-xl font-bold">{Object.entries(quantities).reduce((acc, [itemName, quantity]) => acc + getOrderItemPrice(itemName, quantity), 0)} $</Text>
+            <Text className="text-xl font-bold">{totalAmount} $</Text>
             </View>
 
             <View className="mt-5 flex-row items-center justify-between">
             <Text className="text-xl font-bold">Amount Paid:</Text>
             <Input
-              style={{ flex: 1, marginLeft: 10, marginRight: 10, fontSize: 16, justifyContent: "flex-end" }}
-              placeholder="Amount Paid"
-              keyboardType="number-pad"
-              value={amountPaid.toString()} // Ensure input reflects state
+              style={{
+                flex: 1,
+                marginLeft: 10,
+                marginRight: 10,
+                fontSize: 16,
+                justifyContent: "flex-end",
+                borderColor: "black",
+                borderWidth: 1, 
+                borderRadius: 5, 
+                paddingHorizontal: 10,
+              }}
+              placeholder="Enter Number"
+              keyboardType="default"
+              value={amountPaid.toString()} 
               onChangeText={handleAmountPaidChange}
             />
             <Text className="text-xl font-bold">$</Text>

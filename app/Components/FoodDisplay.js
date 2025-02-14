@@ -39,7 +39,7 @@ const filteredData =
 
       /* Food Items Grid */
       <ScrollView>
-        <View className="flex-wrap flex-row h-screen mb-32">
+        <View className="flex-wrap flex-row h-fit mb-32 min-h-screen">
           {filteredData.map((item, index) => (
             <View key={index} className="w-1/4 p-2">
               <Card style={{ marginBottom: 10, height: 280, borderRadius: 20 }}>
