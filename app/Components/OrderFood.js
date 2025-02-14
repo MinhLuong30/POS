@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { View, Text, ScrollView, Alert, Modal, TouchableOpacity } from "react-native";
-import { Card, Button, Picker, Collapse } from "@ant-design/react-native";
+import { Card, Button, Picker, Collapse, Input } from "@ant-design/react-native";
 import { saveOrder, getOrders } from "./Orders";
 import { CollapsePanel } from "@ant-design/react-native/lib/collapse/collapse";
 import * as Sharing from "expo-sharing";
@@ -11,10 +11,21 @@ import { printOrder } from "./PrintOrder";
 
 export default function OrderFood({ quantities }) {
   const [orderType, setOrderType] = useState("Eat Here");
+  const [paymentMethod, setPaymentMethod] = useState("Cash");
   const [modalVisible, setModalVisible] = useState(false);
   const [billModalVisible, setBillModalVisible] = useState(false);
   const [orderCounter, setOrderCounter] = useState(1);
   const [currentOrder, setCurrentOrder] = useState(null); // Store the latest order for the bill
+  const [amountPaid, setAmountPaid] = useState(0);
+
+
+  
+
+  const handleAmountPaidChange = (text) => {
+    // Convert text input to a number, default to 0 if empty or invalid
+    const value = parseFloat(text);
+    setAmountPaid(isNaN(value) ? 0 : value);
+  };
 
   const getOrderItemPrice = (itemName, quantity) => {
     const item = japaneseFoodData.find((food) => food.name === itemName);
@@ -57,6 +68,13 @@ export default function OrderFood({ quantities }) {
 
   };
 
+  const totalAmount = Object.entries(quantities).reduce(
+    (acc, [itemName, quantity]) => acc + getOrderItemPrice(itemName, quantity),
+    0
+  );
+  const balanceDue = Math.max(amountPaid - totalAmount , 0).toFixed(2);
+  
+
   return (
     <View className="flex-1 h-fit ml-3 bg-gray-100 p-4 mb-10">
       <Text className="text-3xl text-center mb-4 font-bold">Order Food</Text>
@@ -95,15 +113,50 @@ export default function OrderFood({ quantities }) {
               );
             }
             return null;
-          })}
-        </ScrollView>
-      </View>
+            })}
+            </ScrollView>
+            </View>
 
-      {/* Place Order Button */}
+            <View className="mt-5 flex-row items-center justify-between">
+            <Text className="text-xl font-bold">Payment Method:</Text>
+            <Picker
+            data={[
+              { label: "Cash", value: "Cash" },
+              { label: "Bank Transfer", value: "Bank Transfer" },
+            ]}
+            cols={1}
+            value={[paymentMethod]}
+            onChange={(val) => setPaymentMethod(val[0])}
+            >
+            <Button>{paymentMethod}</Button>
+            </Picker>
+            </View>
+
+            <View className="mt-5 flex-row items-center justify-between">
+            <Text className="text-xl font-bold">Total:</Text>
+            <Text className="text-xl font-bold">{Object.entries(quantities).reduce((acc, [itemName, quantity]) => acc + getOrderItemPrice(itemName, quantity), 0)} $</Text>
+            </View>
+
+            <View className="mt-5 flex-row items-center justify-between">
+            <Text className="text-xl font-bold">Amount Paid:</Text>
+            <Input
+              style={{ flex: 1, marginLeft: 10, marginRight: 10, fontSize: 16, justifyContent: "flex-end" }}
+              placeholder="Amount Paid"
+              keyboardType="number-pad"
+              value={amountPaid.toString()} // Ensure input reflects state
+              onChangeText={handleAmountPaidChange}
+            />
+            <Text className="text-xl font-bold">$</Text>
+            </View>
+
+            <View className="mt-5 flex-row items-center justify-between">
+            <Text className="text-xl font-bold">Balance Due:</Text>
+            <Text className="text-xl font-bold">{balanceDue} $</Text>
+            </View>
+
+            {/* Place Order Button */}
       <View className="flex-row items-center justify-between mt-5">
-        <Text className="text-xl font-bold">
-          Total: {Object.entries(quantities).reduce((acc, [itemName, quantity]) => acc + getOrderItemPrice(itemName, quantity), 0)} $
-        </Text>
+
         <Button type="primary" onPress={handlePlaceOrder}>
           Place Order
         </Button>
@@ -132,7 +185,7 @@ export default function OrderFood({ quantities }) {
                     <Button type="primary"  
                             style={{ width: 200, alignSelf: "center" }}
                             onPress={() => printOrder(currentOrder, getOrderItemPrice)} className="mt-4">
-                      Print Receipt
+                      <Text>Print Receipt</Text>
                     </Button>
                   </CollapsePanel>
                 ))}

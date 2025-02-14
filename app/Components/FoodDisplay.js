@@ -3,18 +3,22 @@ import { Text, View, ScrollView, TouchableOpacity } from "react-native";
 import { Button, Card } from "@ant-design/react-native";
 import japaneseFoodData from "../Data";
 import '../../global.css';
-const foodTypes = ["All", "Sushi", "Salad", "Tenmaki"];
+const foodTypes = ["All", "Sushi", "Salad", "Tenmaki", "My Order"];
 
 export default function FoodDisplay({ quantities, updateQuantity }) {
   const [selectedType, setSelectedType] = useState("All");
 
   // Filter data based on selected type
-  const filteredData =
-    selectedType === "All"
-      ? japaneseFoodData
-      : japaneseFoodData.filter(
-          (item) => item.type.toLowerCase() === selectedType.toLowerCase()
-        );
+// Filter data based on selected type
+const filteredData =
+  selectedType === "All"
+    ? japaneseFoodData
+    : selectedType === "My Order"
+    ? japaneseFoodData.filter((item) => quantities[item.name] > 0) // Show only selected items
+    : japaneseFoodData.filter(
+        (item) => item.type.toLowerCase() === selectedType.toLowerCase()
+      );
+
 
   return (
     <View className="w-3/4 bg-gray-100 p-4">
@@ -35,7 +39,7 @@ export default function FoodDisplay({ quantities, updateQuantity }) {
 
       /* Food Items Grid */
       <ScrollView>
-        <View className="flex-wrap flex-row mb-32">
+        <View className="flex-wrap flex-row h-screen mb-32">
           {filteredData.map((item, index) => (
             <View key={index} className="w-1/4 p-2">
               <Card style={{ marginBottom: 10, height: 280, borderRadius: 20 }}>
