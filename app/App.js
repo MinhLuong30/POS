@@ -8,12 +8,15 @@ import '../global.css';
 export default function App() {
   const [quantities, setQuantities] = useState({});
 
-  // Function to update quantity
   const updateQuantity = (itemName, amount) => {
     setQuantities((prev) => {
       const newQuantity = (prev[itemName] || 0) + amount;
       return { ...prev, [itemName]: Math.max(0, newQuantity) };
     });
+  };
+
+  const resetQuantities = () => {
+    setQuantities({});
   };
 
   return (
@@ -23,11 +26,8 @@ export default function App() {
           <Text className="text-2xl text-center text-white bg-gray-500">Coco-Ichiban</Text>
         </View>
         <View className="flex-row">
-          {/* Food Display */}
           <FoodDisplay quantities={quantities} updateQuantity={updateQuantity} />
-          
-          {/* Order Food Section */}
-          <OrderFood quantities={quantities} />
+          <OrderFood quantities={quantities} resetQuantities={resetQuantities} />
         </View>
         <StatusBar style="auto" />
       </View>

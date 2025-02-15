@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { View, Text, ScrollView, Alert, Modal, TouchableOpacity } from "react-native";
 import { Card, Button, Picker, Collapse, Input } from "@ant-design/react-native";
 import { saveOrder, getOrders } from "./Orders";
@@ -7,8 +7,10 @@ import * as FileSystem from "expo-file-system";
 import * as Print from "expo-print"; 
 import japaneseFoodData from "../Data";
 import { printOrder } from "./PrintOrder";
+import BillModal from "./BillModal";
+import RevenueModal from "./RevenueModal";
 
-export default function OrderFood({ quantities }) {
+export default function OrderFood({ quantities, resetQuantities }) {
   const [orderType, setOrderType] = useState("Eat Here");
   const [paymentMethod, setPaymentMethod] = useState("Cash");
   const [modalVisible, setModalVisible] = useState(false);
@@ -16,7 +18,8 @@ export default function OrderFood({ quantities }) {
   const [orderCounter, setOrderCounter] = useState(1);
   const [currentOrder, setCurrentOrder] = useState(null); // Store the latest order for the bill
   const [amountPaid, setAmountPaid] = useState("");
-
+  const [revenueModalVisible, setRevenueModalVisible] = useState(false);
+  
 
   
 
@@ -25,6 +28,25 @@ export default function OrderFood({ quantities }) {
     const value = parseFloat(text);
     setAmountPaid(isNaN(value) ? "" : value);
   };
+
+  const handlePaymentChange = (val) => {
+    const selectedMethod = val[0];
+    setPaymentMethod(selectedMethod);
+  
+    if (selectedMethod === "Bank Transfer") {
+      setAmountPaid(totalAmount); // Ensure amountPaid matches totalAmount
+    } else {
+      setAmountPaid("");
+    }
+  };
+  
+  useEffect(() => {
+    if (paymentMethod === "Bank Transfer") {
+      setAmountPaid(totalAmount);
+    }
+  }, [totalAmount]); 
+  
+
 
   const getOrderItemPrice = (itemName, quantity) => {
     const item = japaneseFoodData.find((food) => food.name === itemName);
@@ -44,18 +66,21 @@ export default function OrderFood({ quantities }) {
     Alert.alert("Order Error", "No items selected!");
     return;
   }
-    const total = orderItems.reduce((acc, item) => acc + item.price , 0); 
+    const total = orderItems.reduce((acc, item) => acc + item.price , 0).toFixed(2); 
 
     // Generate Order ID in format OD-001, OD-002...
     const orderId = `OD-${String(orderCounter).padStart(3, "0")}`;
 
     // Create the new order object
+    const date = new Date().toLocaleDateString("en-GB"); // Format date as dd/mm/yyyy
     const newOrder = {
       orderId,
       orderType,
       items: orderItems,
       total,
+      date,
       timestamp: new Date().toLocaleString(),
+      paymentMethod,
     };
 
     // Save the order
@@ -67,10 +92,15 @@ export default function OrderFood({ quantities }) {
 
   };
 
+  const handleClose = () => {
+    setBillModalVisible(false);
+    handlePaymentChange(["Cash"]);
+    setAmountPaid("");
+    resetQuantities();
+  };
+
   const totalAmount = Object.entries(quantities).reduce(
-    (acc, [itemName, quantity]) => acc + getOrderItemPrice(itemName, quantity),
-    0
-  ).toFixed(2);
+    (acc, [itemName, quantity]) => acc + getOrderItemPrice(itemName, quantity), 0).toFixed(2);
 
   const balanceDue = Math.max(amountPaid - totalAmount , 0).toFixed(2);
   
@@ -126,7 +156,7 @@ export default function OrderFood({ quantities }) {
             ]}
             cols={1}
             value={[paymentMethod]}
-            onChange={(val) => setPaymentMethod(val[0])}
+            onChange={handlePaymentChange}
             >
             <Button>{paymentMethod}</Button>
             </Picker>
@@ -152,9 +182,10 @@ export default function OrderFood({ quantities }) {
                 paddingHorizontal: 10,
               }}
               placeholder="Enter Number"
-              keyboardType="default"
+              keyboardType="number-pad"
               value={amountPaid.toString()} 
               onChangeText={handleAmountPaidChange}
+              editable={paymentMethod !== "Bank Transfer"}
             />
             <Text className="text-xl font-bold">$</Text>
             </View>
@@ -165,9 +196,9 @@ export default function OrderFood({ quantities }) {
             </View>
 
             {/* Place Order Button */}
-      <View className="flex-row items-center justify-between mt-5">
+      <View className="flex-row items-center justify-center mt-5">
 
-        <Button type="primary" onPress={handlePlaceOrder}>
+        <Button type="primary" onPress={handlePlaceOrder} disabled={amountPaid < totalAmount}>
           Place Order
         </Button>
       </View>
@@ -175,6 +206,7 @@ export default function OrderFood({ quantities }) {
       {/* Show Orders Button */}
       <View className="flex-row items-center justify-between mt-5">
         <Button type="default" onPress={() => setModalVisible(true)}>Show Orders</Button>
+        <Button type="warning" onPress={() => setRevenueModalVisible(true)}>Revenue</Button>
       </View>
 
       {/* Orders List Modal */}
@@ -211,37 +243,19 @@ export default function OrderFood({ quantities }) {
       </Modal>
 
        {/* Bill Modal */}
-       <Modal transparent visible={billModalVisible} onRequestClose={() => setBillModalVisible(false)}>
-        <View style={{ flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: "rgba(0,0,0,0.5)" }}>
-          <View style={{ width: 400, backgroundColor: "white", borderRadius: 20, padding: 20 }}>
-            <Text className="text-2xl text-center mb-4 font-bold">Order Receipt</Text>
-            {currentOrder && (
-              <>
-                <Text className="text-lg">Order ID: {currentOrder.orderId}</Text>
-                <Text className="text-lg">Order Type: {currentOrder.orderType}</Text>
-                <Text className="text-lg">Timestamp: {currentOrder.timestamp}</Text>
+       <BillModal
+          visible={billModalVisible}
+          onClose={handleClose}
+          currentOrder={currentOrder}
+          paymentMethod={paymentMethod}
+          getOrderItemPrice={getOrderItemPrice}
+        />
 
-                <Text className="text-xl font-bold mt-4">Items Ordered:</Text>
-                {currentOrder.items.map((item, index) => (
-                  <Text key={index} className="text-lg">
-                    - {item.name} x {item.quantity} = {getOrderItemPrice(item.name, item.quantity)} $
-                  </Text>
-                ))}
-
-                <Text className="text-xl font-bold mt-4">Total: {currentOrder.total} $</Text>
-
-                <Button type="primary" onPress={() => printOrder(currentOrder, getOrderItemPrice)} className="mt-4">
-                  Print Receipt
-                </Button>
-              </>
-            )}
-
-            <TouchableOpacity onPress={() => setBillModalVisible(false)}>
-              <Text className="text-center text-lg text-blue-500 mt-4">Close</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </Modal>
+        {/* Revenue Modal */}
+        <RevenueModal
+          visible={revenueModalVisible}
+          onClose={() => setRevenueModalVisible(false)}
+        /> 
     </View>
   );
 }

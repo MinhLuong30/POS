@@ -8,7 +8,7 @@ const foodTypes = ["All", "Sushi", "Salad", "Tenmaki", "My Order"];
 export default function FoodDisplay({ quantities, updateQuantity }) {
   const [selectedType, setSelectedType] = useState("All");
 
-  // Filter data based on selected type
+
 // Filter data based on selected type
 const filteredData =
   selectedType === "All"
