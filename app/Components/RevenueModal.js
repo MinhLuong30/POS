@@ -48,17 +48,17 @@ export default function RevenueModal({ visible, onClose }) {
               <Text className="text-xl text-center font-bold mb-4">${totalRevenue}</Text>
             </View>
 
-            <View className="bg-yellow-400 p-4 rounded-3xl">
+            <View className="bg-yellow-400 p-4 min-w-32 rounded-3xl">
               <Text className="text-2xl text-center mb-4 font-bold">Orders</Text>
               <Text className="text-xl text-center font-bold mb-4">{orders.length}</Text>
             </View>
 
-            <View className="bg-green-400 p-4 rounded-3xl">
-              <Text className="text-2xl text-center mb-4 font-bold">Cash</Text>
+            <View className="bg-green-400 p-4 min-w-32 rounded-3xl">
+              <Text className="text-2xl text-center mb-4 font-bold">Cashs</Text>
               <Text className="text-xl text-center font-bold mb-4">${cashRevenue}</Text>
             </View>            
 
-            <View className="bg-blue-400 p-4 rounded-3xl">
+            <View className="bg-blue-400 p-4 min-w-32 rounded-3xl">
               <Text className="text-2xl text-center mb-4 font-bold">Banks</Text>
               <Text className="text-xl text-center font-bold mb-4">${(totalRevenue - cashRevenue).toFixed(2)}</Text>
             </View>
