@@ -4,6 +4,7 @@ import { Provider } from "@ant-design/react-native";
 import FoodDisplay from "./Components/FoodDisplay";
 import OrderFood from "./Components/OrderFood";
 import '../global.css';
+import * as ScreenOrientation from 'expo-screen-orientation';
 
 export default function App() {
   const [quantities, setQuantities] = useState({});

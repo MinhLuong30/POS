@@ -9,6 +9,7 @@ import japaneseFoodData from "../Data";
 import { printOrder } from "./PrintOrder";
 import BillModal from "./BillModal";
 import RevenueModal from "./RevenueModal";
+import axios from "axios";
 
 export default function OrderFood({ quantities, resetQuantities }) {
   const [orderType, setOrderType] = useState("Eat Here");
@@ -46,33 +47,41 @@ export default function OrderFood({ quantities, resetQuantities }) {
     }
   }, [totalAmount]); 
   
-
+  const saveOrderToAPI = async (orderData) => {
+    try {
+      const response = await axios.post(`https://67da6f3835c87309f52c737a.mockapi.io/Orders/FoodOrders`, orderData);
+      return response.data;
+      console.log("Order saved:", response.data);
+      setOrderCounter((prevCounter) => prevCounter + 1);
+    } catch (error) {
+      console.error("Error saving order:", error);
+      throw error;
+    }
+  };
 
   const getOrderItemPrice = (itemName, quantity) => {
     const item = japaneseFoodData.find((food) => food.name === itemName);
     return item ? item.price * quantity : 0; // Return calculated price or 0 if item not found
   };
   // Function to handle order placement
-  const handlePlaceOrder = () => {
+  const handlePlaceOrder = async () => {
     const orderItems = Object.entries(quantities)
-  .filter(([_, quantity]) => quantity > 0)
-  .map(([itemName, quantity]) => ({
-    name: itemName,
-    price: getOrderItemPrice(itemName, quantity),
-    quantity,
-  }));
-
-  if (orderItems.length === 0) {
-    Alert.alert("Order Error", "No items selected!");
-    return;
-  }
-    const total = orderItems.reduce((acc, item) => acc + item.price , 0).toFixed(2); 
-
-    // Generate Order ID in format OD-001, OD-002...
+      .filter(([_, quantity]) => quantity > 0)
+      .map(([itemName, quantity]) => ({
+        name: itemName,
+        price: getOrderItemPrice(itemName, quantity),
+        quantity,
+      }));
+  
+    if (orderItems.length === 0) {
+      Alert.alert("Order Error", "No items selected!");
+      return;
+    }
+  
+    const total = orderItems.reduce((acc, item) => acc + item.price, 0).toFixed(2);
     const orderId = `OD-${String(orderCounter).padStart(3, "0")}`;
-
-    // Create the new order object
-    const date = new Date().toLocaleDateString("en-GB"); // Format date as dd/mm/yyyy
+    const date = new Date().toLocaleDateString("en-GB");
+  
     const newOrder = {
       orderId,
       orderType,
@@ -82,14 +91,14 @@ export default function OrderFood({ quantities, resetQuantities }) {
       timestamp: new Date().toLocaleString(),
       paymentMethod,
     };
-
-    // Save the order
-    saveOrder(newOrder);
-    setOrderCounter((prevCounter) => prevCounter + 1);
-
-    setCurrentOrder(newOrder); // Set the current order for printing
-    setBillModalVisible(true); // Show bill modal
-
+  
+    try {
+      const savedOrder = await saveOrderToAPI(newOrder); // Wait for API response
+      setCurrentOrder(savedOrder); // Update state with API response
+      setBillModalVisible(true);
+    } catch (error) {
+      Alert.alert("Order Error", "Failed to place order. Please try again.");
+    }
   };
 
   const handleClose = () => {
