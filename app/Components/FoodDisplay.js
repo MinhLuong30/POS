@@ -1,13 +1,29 @@
-import { useState } from "react";
+import { use, useEffect, useState } from "react";
 import { Text, View, ScrollView, TouchableOpacity } from "react-native";
 import { Button, Card } from "@ant-design/react-native";
-import japaneseFoodData from "../Data";
 import '../../global.css';
+import axios from "axios";
+import RevenueModal from "./RevenueModal";
 const foodTypes = ["All", "Sushi", "Salad", "Tenmaki", "My Order"];
 
-export default function FoodDisplay({ quantities, updateQuantity }) {
+export default function FoodDisplay({ quantities, updateQuantity, user }) {
   const [selectedType, setSelectedType] = useState("All");
+  const [japaneseFoodData, setJapaneseFoodData] = useState([]);
+  const [revenueModalVisible, setRevenueModalVisible] = useState(false);
+const API_URL = "https://67da6f3835c87309f52c737a.mockapi.io/Orders/FoodData"; // Replace with your actual API URL
 
+const fetchFoodData = async () => {
+  try {
+    const response = await axios.get(API_URL);
+    setJapaneseFoodData(response.data);
+  } catch (error) {
+    console.error("Error fetching food data:", error);
+    return [];
+  }
+};
+useEffect(() => {
+  fetchFoodData();
+}, []);
 
 // Filter data based on selected type
 const filteredData =
@@ -23,19 +39,25 @@ const filteredData =
   return (
     <View className="w-3/4 bg-gray-100 p-4">
       /* Food Type ScrollView */
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} className="mb-4">
-        {foodTypes.map((type, index) => (
-          <TouchableOpacity key={index} onPress={() => setSelectedType(type)}>
-            <View className={`w-40 h-20 p-2`}>
-              <Card style={{ height: 50, borderRadius: 20, marginBottom: 30, backgroundColor: `${selectedType === type ? "black" : "white"}` }}>
-                <Card.Body>
-                  <Text className={`text-center items-center justify-center text-lg ${selectedType === type ? "text-white" : ""}`}>{type}</Text>
-                </Card.Body>
-              </Card>
-            </View>
-          </TouchableOpacity>
-        ))}
-      </ScrollView>
+      <View className="flex-row items-center justify-center">
+        <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+          {foodTypes.map((type, index) => (
+            <TouchableOpacity key={index} onPress={() => setSelectedType(type)}>
+              <View className={`w-40 h-20 p-2`}>
+                <Card style={{ height: 50, borderRadius: 20, marginBottom: 30, backgroundColor: `${selectedType === type ? "black" : "white"}` }}>
+                  <Card.Body>
+                    <Text className={`text-center items-center justify-center text-lg ${selectedType === type ? "text-white" : ""}`}>{type}</Text>
+                  </Card.Body>
+                </Card>
+              </View>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
+        {user && user.isAdmin && (
+          <Button type="warning" onPress={() => setRevenueModalVisible(true)}>Revenue</Button>
+        )}
+      </View>
+      
 
       /* Food Items Grid */
       <ScrollView>
@@ -66,6 +88,13 @@ const filteredData =
           ))}
         </View>
       </ScrollView>
+
+      {/* Revenue Modal */}
+      <RevenueModal
+        visible={revenueModalVisible}
+        onClose={() => setRevenueModalVisible(false)}
+      /> 
+      
     </View>
   );
 }

@@ -2,16 +2,17 @@ import { useEffect, useState } from "react";
 import { View, Text, ScrollView, Alert, Modal, TouchableOpacity } from "react-native";
 import { Card, Button, Picker, Collapse, Input } from "@ant-design/react-native";
 import { saveOrder, getOrders } from "./Orders";
-import * as Sharing from "expo-sharing";
-import * as FileSystem from "expo-file-system";
-import * as Print from "expo-print"; 
+
 import japaneseFoodData from "../Data";
 import { printOrder } from "./PrintOrder";
 import BillModal from "./BillModal";
 import RevenueModal from "./RevenueModal";
 import axios from "axios";
 
-export default function OrderFood({ quantities, resetQuantities }) {
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import LoginModal from "./LogInModal";
+
+export default function OrderFood({ quantities, resetQuantities, user, setUser }) {
   const [orderType, setOrderType] = useState("Eat Here");
   const [paymentMethod, setPaymentMethod] = useState("Cash");
   const [modalVisible, setModalVisible] = useState(false);
@@ -20,6 +21,22 @@ export default function OrderFood({ quantities, resetQuantities }) {
   const [currentOrder, setCurrentOrder] = useState(null); // Store the latest order for the bill
   const [amountPaid, setAmountPaid] = useState("");
   const [revenueModalVisible, setRevenueModalVisible] = useState(false);
+  const [loginVisible, setLoginVisible] = useState(false);
+
+  useEffect(() => {
+    const fetchUser = async () => {
+      try {
+        const storedUser = await AsyncStorage.getItem("user");
+        if (storedUser) {
+          setUser(JSON.parse(storedUser));
+        }
+      } catch (error) {
+        console.error("Error retrieving user:", error);
+      }
+    };
+  
+    fetchUser();
+  }, [loginVisible]);
   
 
   
@@ -116,9 +133,21 @@ export default function OrderFood({ quantities, resetQuantities }) {
 
   return (
     <View className="flex-1 h-fit ml-3 bg-gray-100 p-4 mb-10">
-      <Text className="text-3xl text-center mb-4 font-bold">Order Food</Text>
+      {user ? (
+        <View className="flex-row items-center justify-end  gap-5 truncate text-center">
+          <Text className="text-2xl text-center font-bold">{user.name}</Text>
+          <Button onPress={() => AsyncStorage.removeItem("user").then(() => setUser(null))}>Log Out</Button>
+        </View>
+        
+      ) : (
+
+      <Button onPress={() => setLoginVisible(true)}>Log In</Button>
+      )}
+      <Text className="text-3xl text-center mb-4 mt-4 font-bold">Order Food</Text>
 
       {/* Select Order Type */}
+      <View className="flex-row items-center justify-between">
+      <Button type="default" onPress={() => setModalVisible(true)}>Show Orders</Button>
       <Picker
         data={[
           { label: "Eat Here", value: "Eat Here" },
@@ -130,6 +159,8 @@ export default function OrderFood({ quantities, resetQuantities }) {
       >
         <Button>{orderType}</Button>
       </Picker>
+      </View>
+     
 
       {/* Order Summary */}
       <View style={{ flex: 1, maxHeight: 250, marginTop: 20 }}>
@@ -214,7 +245,7 @@ export default function OrderFood({ quantities, resetQuantities }) {
 
       {/* Show Orders Button */}
       <View className="flex-row items-center justify-between mt-5">
-        <Button type="default" onPress={() => setModalVisible(true)}>Show Orders</Button>
+        
         <Button type="warning" onPress={() => setRevenueModalVisible(true)}>Revenue</Button>
       </View>
 
@@ -265,6 +296,16 @@ export default function OrderFood({ quantities, resetQuantities }) {
           visible={revenueModalVisible}
           onClose={() => setRevenueModalVisible(false)}
         /> 
+
+        {/* Log In Modal */}
+        <LoginModal
+        visible={loginVisible}
+        onClose={() => setLoginVisible(false)}
+        onLogin={(user) => {
+          setLoginVisible(false);
+        }}
+      />
+
     </View>
   );
 }
