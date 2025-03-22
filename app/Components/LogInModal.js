@@ -2,6 +2,8 @@ import { useState } from "react";
 import { View, Text, Modal, TextInput, TouchableOpacity, Alert } from "react-native";
 import { Button } from "@ant-design/react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import useLocation from "../../hooks/useLocation";
+import axios from "axios";
 
 const users = [
   {
@@ -22,12 +24,33 @@ export default function LogInModal({ visible, onClose, onLogin }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
+  const { location, errorMsg } = useLocation();
+
+  const API_URL = "https://67de1bf4471aaaa742834afe.mockapi.io/POS"; // Replace with your actual API URL
+
+  const loginUser = async (name, email, location) => {
+    try {
+      const time = new Date().toISOString(); // Get the current time in ISO format
+      const response = await axios.post(`${API_URL}/Attendance`, {
+        name,
+        email,
+        location,
+        type: "CheckIn",
+        time
+      });
   
+      return response.data;
+    } catch (error) {
+      throw error.response?.data || "Login failed";
+    }
+  };
 
   const handleLogin = async () => {
     const user = users.find((u) => u.email === email && u.password === password);
     if (user) {
       try {
+        const response = await loginUser(user.name, user.email, location[0]?.formattedAddress || "Unknown Location");
+        console.log(response);
         await AsyncStorage.setItem("user", JSON.stringify(user));
         Alert.alert("Login Successful", `Welcome, ${user.name}!`);
         onLogin(user);

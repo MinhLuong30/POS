@@ -3,7 +3,6 @@
     "name": "POS",
     "slug": "POS",
     "version": "1.0.0",
-    "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
@@ -15,11 +14,11 @@
     "orientation": "landscape",
     "plugins": [
       [
-        "expo-screen-orientation",
+        "expo-location",
         {
-          "initialOrientation": "LANDSCAPE"
+          "locationAlwaysAndWhenInUsePermission": "Allow POS to access your location"      
         }
-      ]
+        ]
     ],
     "ios": {
       "supportsTablet": true

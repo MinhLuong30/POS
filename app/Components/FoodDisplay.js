@@ -4,12 +4,14 @@ import { Button, Card } from "@ant-design/react-native";
 import '../../global.css';
 import axios from "axios";
 import RevenueModal from "./RevenueModal";
+import CheckAttendanceModal from "./CheckAttendanceModal";
 const foodTypes = ["All", "Sushi", "Salad", "Tenmaki", "My Order"];
 
 export default function FoodDisplay({ quantities, updateQuantity, user }) {
   const [selectedType, setSelectedType] = useState("All");
   const [japaneseFoodData, setJapaneseFoodData] = useState([]);
   const [revenueModalVisible, setRevenueModalVisible] = useState(false);
+  const [checkAttendanceModalVisible, setCheckAttendanceModalVisible] = useState(false);
 const API_URL = "https://67da6f3835c87309f52c737a.mockapi.io/Orders/FoodData"; // Replace with your actual API URL
 
 const fetchFoodData = async () => {
@@ -54,7 +56,11 @@ const filteredData =
           ))}
         </ScrollView>
         {user && user.isAdmin && (
-          <Button type="warning" onPress={() => setRevenueModalVisible(true)}>Revenue</Button>
+          <View className="flex-row items-center gap-2 justify-center">
+            <Button type="warning" onPress={() => setRevenueModalVisible(true)}>Revenue</Button>
+            <Button type="primary" onPress={() => setCheckAttendanceModalVisible(true)}>Attendance</Button>
+          </View>
+         
         )}
       </View>
       
@@ -93,6 +99,11 @@ const filteredData =
       <RevenueModal
         visible={revenueModalVisible}
         onClose={() => setRevenueModalVisible(false)}
+      /> 
+
+      <CheckAttendanceModal
+        visible={checkAttendanceModalVisible}
+        onClose={() => setCheckAttendanceModalVisible(false)}
       /> 
       
     </View>

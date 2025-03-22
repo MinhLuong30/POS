@@ -11,6 +11,7 @@ import axios from "axios";
 
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import LoginModal from "./LogInModal";
+import useLocation from "../../hooks/useLocation";
 
 export default function OrderFood({ quantities, resetQuantities, user, setUser }) {
   const [orderType, setOrderType] = useState("Eat Here");
@@ -22,7 +23,9 @@ export default function OrderFood({ quantities, resetQuantities, user, setUser }
   const [amountPaid, setAmountPaid] = useState("");
   const [revenueModalVisible, setRevenueModalVisible] = useState(false);
   const [loginVisible, setLoginVisible] = useState(false);
+  const { location, errorMsg } = useLocation();
 
+  const API_URL = "https://67de1bf4471aaaa742834afe.mockapi.io/POS";
   useEffect(() => {
     const fetchUser = async () => {
       try {
@@ -39,7 +42,36 @@ export default function OrderFood({ quantities, resetQuantities, user, setUser }
   }, [loginVisible]);
   
 
+  const logOutUser = async (name, email, location) => {
+    try {
+      const time = new Date().toISOString(); // Get the current time in ISO format
+      const response = await axios.post(`${API_URL}/Attendance`, {
+        name,
+        email,
+        location,
+        type: "CheckOut",
+        time
+      });
   
+      return response.data;
+    } catch (error) {
+      throw error.response?.data || "Logout failed";
+    }
+  };
+
+  const handleLogOut = async () => {
+    if (user) {
+      try {
+        const response = await logOutUser(user.name, user.email, location[0]?.formattedAddress || "Unknown Location");
+        console.log(response);
+        await AsyncStorage.removeItem("user");
+        Alert.alert("Log Out Successful", `Goodbye, ${user.name}!`);
+        setUser(null);
+      } catch (error) {
+        Alert.alert("Storage Error", "Failed to remove user data");
+      }
+    } 
+  };
 
   const handleAmountPaidChange = (text) => {
     // Convert text input to a number, default to 0 if empty or invalid
@@ -136,7 +168,7 @@ export default function OrderFood({ quantities, resetQuantities, user, setUser }
       {user ? (
         <View className="flex-row items-center justify-end  gap-5 truncate text-center">
           <Text className="text-2xl text-center font-bold">{user.name}</Text>
-          <Button onPress={() => AsyncStorage.removeItem("user").then(() => setUser(null))}>Log Out</Button>
+          <Button onPress={handleLogOut}>Log Out</Button>
         </View>
         
       ) : (
