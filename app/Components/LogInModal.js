@@ -1,62 +1,60 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { View, Text, Modal, TextInput, TouchableOpacity, Alert } from "react-native";
 import { Button } from "@ant-design/react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import useLocation from "../../hooks/useLocation";
 import axios from "axios";
 
-const users = [
-  {
-    name: "Admin User",
-    email: "admin@example.com",
-    password: "admin123",
-    isAdmin: true,
-  },
-  {
-    name: "Regular User",
-    email: "user@example.com",
-    password: "user123",
-    isAdmin: false,
-  },
-];
-
 export default function LogInModal({ visible, onClose, onLogin }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-
-  const { location, errorMsg } = useLocation();
+  const [users, setUsers] = useState([]);
+  const { location } = useLocation();
 
   const API_URL = "https://67de1bf4471aaaa742834afe.mockapi.io/POS"; // Replace with your actual API URL
 
+  // Fetch users from API
+  useEffect(() => {
+    const fetchUsers = async () => {
+      try {
+        const response = await axios.get(`${API_URL}/User`);
+        setUsers(response.data);
+      } catch (error) {
+        Alert.alert("Error", "Failed to fetch users");
+      }
+    };
+    fetchUsers();
+  }, []);
+
+  // Handle login API call
   const loginUser = async (name, email, location) => {
     try {
-      const time = new Date().toISOString(); // Get the current time in ISO format
+      const time = new Date().toISOString();
       const response = await axios.post(`${API_URL}/Attendance`, {
         name,
         email,
         location,
         type: "CheckIn",
-        time
+        time,
       });
-  
       return response.data;
     } catch (error) {
       throw error.response?.data || "Login failed";
     }
   };
 
+  // Handle login logic
   const handleLogin = async () => {
     const user = users.find((u) => u.email === email && u.password === password);
     if (user) {
       try {
-        const response = await loginUser(user.name, user.email, location[0]?.formattedAddress || "Unknown Location");
-        console.log(response);
+        await loginUser(user.name, user.email, location[0]?.formattedAddress || "Unknown Location");
         await AsyncStorage.setItem("user", JSON.stringify(user));
         Alert.alert("Login Successful", `Welcome, ${user.name}!`);
         onLogin(user);
         onClose();
       } catch (error) {
-        Alert.alert("Storage Error", "Failed to save user data");
+        Alert.alert("Login Error", error.toString());
       }
     } else {
       Alert.alert("Login Failed", "Invalid email or password");
@@ -67,29 +65,29 @@ export default function LogInModal({ visible, onClose, onLogin }) {
     <Modal transparent visible={visible} onRequestClose={onClose}>
       <View style={{ flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: "rgba(0,0,0,0.5)" }}>
         <View style={{ width: 300, backgroundColor: "white", padding: 20, borderRadius: 10 }}>
-          <Text className="text-2xl text-center mb-4 font-bold">Login</Text>
-          
-          <Text className="text-lg">Email:</Text>
+          <Text style={{ fontSize: 20, textAlign: "center", marginBottom: 16, fontWeight: "bold" }}>Login</Text>
+
+          <Text style={{ fontSize: 16 }}>Email:</Text>
           <TextInput
-            className="border p-2 mb-4"
+            style={{ borderWidth: 1, padding: 8, marginBottom: 12 }}
             value={email}
             onChangeText={setEmail}
             placeholder="Enter email"
             keyboardType="email-address"
           />
-          
-          <Text className="text-lg">Password:</Text>
+
+          <Text style={{ fontSize: 16 }}>Password:</Text>
           <TextInput
-            className="border p-2 mb-4"
+            style={{ borderWidth: 1, padding: 8, marginBottom: 12 }}
             value={password}
             onChangeText={setPassword}
             placeholder="Enter password"
             secureTextEntry
           />
-          
+
           <Button type="primary" onPress={handleLogin}>Login</Button>
           <TouchableOpacity onPress={onClose}>
-            <Text className="text-center text-lg text-blue-500 mt-4">Close</Text>
+            <Text style={{ textAlign: "center", fontSize: 16, color: "blue", marginTop: 16 }}>Close</Text>
           </TouchableOpacity>
         </View>
       </View>
